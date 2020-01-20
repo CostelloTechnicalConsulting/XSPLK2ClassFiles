@@ -1,0 +1,65 @@
+<dashboard>
+  <label>Website Monitoring</label>
+  <row>
+    <panel>
+      <title>Total Number of Errors</title>
+      <single>
+        <search ref="cp03_webaccess_errors"></search>
+      </single>
+    </panel>
+    <panel>
+      <title>Unique Visitors</title>
+      <single>
+        <search ref="cp03_unique_visitors"></search>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Most Accessed Webpages</title>
+      <chart>
+        <search ref="cp02_most_accessed_webpages"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Method Requests by Type and Host</title>
+      <chart>
+        <search ref="cp03_methods_by_host"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Discrete Requests by Size and Response</title>
+      <chart>
+        <search ref="cp03_discrete_requests_size_response"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Website Response Performance</title>
+      <chart>
+        <search ref="cp03_method_view_response"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Web Application Functional Statistics</title>
+      <chart>
+        <search ref="cp03_webapp_functional_stats"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <search ref="cp03_average_humidity_temperature"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,436 @@
+#################################################################################################
+##### Getting Data In
+#################################################################################################
+
+## Adding a network input
+
+source="udp:514" sourcetype="syslog"
+
+
+
+index=main sourcetype=log4j OR sourcetype=access_combined 
+
+| mcatalog values(_dims) WHERE index=hvac 
+
+## Custom Field Extraction
+
+--> NOTE: The regex source given in the book is (?i)^(?:[^"]*"){8}s+(?P<response>.+)
+This does not achieve the desired result. The correct regex is:
+
+^(?:[^"\n]*"){8}\s+(?P<response>.+)
+
+index=main sourcetype=access_combined 
+
+## Defining event types and tags
+
+
+
+## Creating an application from an existing application
+
+--> NOTE: The book give the linux shell command for copying a directory: cp -r $SPLUNK_HOME/etc/apps/operational_intelligence 
+ $SPLUNK_HOME/etc/apps/copied_app
+
+The correct command in our Windows environment is:
+
+xcopy /s /i c:\Splunk\etc\apps\operational_intelligence\* c:\Splunk\etc\apps\copied_app
+ 
+
+# 
+# Splunk app configuration file 
+# 
+[install] 
+is_configured = 0 
+ 
+[ui] 
+is_visible = 1 
+label = My Copied App 
+ 
+[launcher] 
+author = John Smith 
+description = My Copied application  
+version = 1.0 
+
+$SPLUNK_HOME/bin/splunk restart 
+
+## Creating an Operational Intelligence App
+
+cp -r $SPLUNK_HOME/etc/apps/operational_intelligence  $SPLUNK_HOME/etc/apps/copied_app
+
+<option name="drilldown">none</option> 
+
+| eventstats avg(dc(JSESSIONID)) as average | eval average=round(average,0)
+
+<option name="charting.chart.overlayFields">average</option>
+
+  <row> 
+    <panel> 
+      <map> 
+        <title>Count by location</title> 
+        <search> 
+          <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip  | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | search City="$city$" Region="$region$" Country="$country$" | geostats count</query> 
+          <earliest>-24h@m</earliest> 
+          <latest>now</latest> 
+        </search> 
+        <option name="mapping.data.maxClusters">100</option> 
+        <option name="mapping.drilldown">all</option> 
+        <option name="mapping.map.center">(0,0)</option> 
+      </map> 
+    </panel> 
+  </row> 
+  
+MySearch | geostats count by product 
+  
+index=main sourcetype=log4j requestType="checkout" | eval avg_price=round(total/numberOfItems,2) | table customerId orderId numberOfItems total avg_price
+
+## Dynamic Drilldown
+
+index=main sourcetype=access_combined | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | stats count by JSESSIONID, clientip, City, Country, Region | fields clientip, City, Region, Country
+
+## Creating a form
+
+index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | stats count by JSESSIONID, clientip, City, Country, Region | fields clientip, City, Region, Country | search City="$city$" Region="$region$" Country="$country$"
+
+## Linking web page activity reports to the form
+
+index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | search City="$city$" Region="$region$" Country="$country$" | timechart dc(JSESSIONID)
+
+## Adding an overlay to the Sessions Over Time chart
+
+| eventstats avg(dc(JSESSIONID)) as average | eval average=round(average,0)
+
+<option name="charting.chart.overlayFields">average</option>
+
+## Displaying a geographical map of visitors
+
+index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" Country | search City="$city$" Region="$region$" Country="$country$" | stats count by Country | fields Country, count | geom geo_countries featureIdField=Country
+
+## NOTE: Alternate query for use with cluster map
+
+index=main sourcetype=access_combined clientip="**" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | search City="**" Region="**" Country="**" | geostats count
+
+
+<row>
+<panel>
+  <map>
+	<title>Count by location</title>
+	<search>
+	  <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with
+		"Unknown" in City, Country, Region | search City="$city$" Region="$region$" Country="$country$" | geostats
+		count</query>
+	  <earliest>-24h@m</earliest>
+	  <latest>now</latest>
+	</search>
+	<option name="mapping.data.maxClusters">100</option>
+	<option name="mapping.drilldown">all</option>
+	<option name="mapping.map.center">(0,0)</option>
+  </map>
+</panel>
+</row>
+  
+## Highlighting average product price
+
+index=main sourcetype="log4j" requestType="checkout" | eval avg_price=round(total/numberOfItems,2) | table customerId orderId numberOfItems total avg_price
+
+#################################################################################################
+##### Advanced Searching
+#################################################################################################
+
+## Calculating the average session time on a website
+
+index=main sourcetype=access_combined | transaction JSESSIONID | stats avg(duration) AS Avg_Session_Time
+
+index=main sourcetype=access_combined | transaction JSESSIONID startswith="GET /home" endswith="checkout" | stats avg(duration) AS Avg_Session_Time
+
+index=main sourcetype=access_combined | transaction JSESSIONID maxpause=30s | stats avg(duration) AS Avg_Session_Time
+
+index=main sourcetype=access_combined | transaction JSESSIONID maxspan=30m | stats avg(duration) AS Avg_Session_Time
+
+index=main sourcetype=access_combined | transaction JSESSIONID maxevents=300 | stats avg(duration) AS Avg_Session_Time
+
+index=main sourcetype=access_combined | transaction JSESSIONID startswith="GET /home" endswith="checkout" maxpause=30s maxspan=30m maxevents=300 | stats avg(duration) AS Avg_Session_Time
+
+
+## Calculating the average execution time for multi-tier web requests
+
+index=main sourcetype=access_combined | join JSESSIONID usetime=true earlier=false [ search index=main sourcetype=log4j | transaction threadId maxspan=5m | eval JSESSIONID=sessionId ] | stats avg(duration) AS Avg_Request_Execution_Time
+
+## Calculating the average execution time without using a join
+
+index=main sourcetype=access_combined OR sourcetype=log4j | eval action=substr(uri_path,2) | eval action=lower(if(isnull(action),requestType,action)) | eval JSESSIONID=if(isnull(JSESSIONID),sessionId,JSESSIONID) | transaction threadId, JSESSIONID, action maxspan=1m | stats avg(duration) AS Avg_Request_Execution_Time
+
+## Displaying the maximum concurrent checkouts
+
+index=main sourcetype=access_combined | transaction JSESSIONID startswith="GET /home" endswith="checkout" | concurrency duration=duration | timechart max(concurrency) AS "Concurrent Checkouts"
+
+## Analyzing the relationship of web requests
+
+index=main sourcetype=access_combined NOT status=200 | associate uri status supcnt=50 | table Description Reference_Key Reference_Value Target_Key Top_Conditional_Value
+
+## Analyzing relationships of DB actions to memory utilization
+
+index=main sourcetype=log4j | transaction threadId | associate supcnt=50 dbAction mem_used
+
+#################################################################################################
+##### Analytics and Machine Learning
+#################################################################################################
+
+
+## Predicting website-traffic volumes
+
+index=main sourcetype=access_combined | timechart span=1h count | predict count
+
+## Create and apply a machine learning model of traffic over time
+
+index=main sourcetype=access_combined | timechart span=1h count | fit LinearRegression fit_intercept=true "count" from "_time" into "ml_traffic_over_time"
+
+index=main sourcetype=access_combined | timechart span=1h count | apply "ml_traffic_over_time" | table _time, "count", "predicted(count)"
+
+## Predicting the total number of items purchased
+
+index=main sourcetype=log4j requestType=checkout | timechart span=1h sum(numberOfItems) as count | predict count
+
+## Predicting the average response time of function calls
+
+index=main sourcetype=log4j | transaction threadId | timechart span=1h avg(duration) as avg_duration | predict upper98=high lower98=low avg_duration
+
+## Finding abnormally sized web requests
+
+index=main sourcetype=access_combined | eventstats mean(bytes) AS mean_bytes, stdev(bytes) AS stdev_bytes | eval Z_score=round(((bytes-mean_bytes)/stdev_bytes),2) | where Z_score>1.5 OR Z_score<-1.5 | table _time, clientip, uri, bytes, mean_bytes, Z_score
+
+## The anomalies command
+
+index=main sourcetype=access_combined | anomalies field=bytes threshold=0.03 | table unexpectedness, _raw | sort –unexpectedness
+
+## The anomalousvalues command
+
+index=main sourcetype=access_combined | anomalousvalue pthresh=0.03
+
+## The anomalydetection command
+
+index=main sourcetype="access_combined" | anomalydetection action=filter pthresh=0.03 bytes
+
+## The cluster command
+
+index=main sourcetype=access_combined | cluster showcount=t | table cluster_count _raw | sort +cluster_count
+
+## Identifying potential session spoofing
+
+index=main sourcetype=access_combined | transaction JSESSIONID | eval count_of_clientips=mvcount(clientip) | where count_of_clientips > 1 | table _time, count_of_clientips, clientip, JSESSIONID | sort count_of_clientips
+
+## Creating logic for urgency
+
+index=main sourcetype=access_combined
+| join JSESSIONID usetime=true earlier=false [ search index=main sourcetype=log4j | transaction threadId | eval JSESSIONID=sessionId ] | transaction JSESSIONID | eval count_of_clientips=mvcount(clientip) | where count_of_clientips > 1 | eval cost_urgency=if(itemPrice>=1000,"2","1") | eval frequency_urgency=case(count_of_clientips=="2","1", count_of_clientips=="3","2",1=1,"3") | eval urgency=cost_urgency + frequency_urgency | table _time, count_of_clientips, clientip, JSESSIONID | sort urgency
+
+## Detecting outliers in server response times
+
+index=main sourcetype="access_combined" | table _time response
+
+index=main sourcetype="access_combined" | table _time response | streamstats window=150 current=true median("response") as median | eval absDev=(abs('response'-median)) | streamstats window=150 current=true median(absDev) as medianAbsDev | eval lowerBound=(median-medianAbsDev*exact(15)), upperBound=(median+medianAbsDev*exact(15)) | eval isOutlier=if('response' < lowerBound OR 'response' > upperBound, 1, 0) | fields _time, "response", lowerBound, upperBound, isOutlier, *
+
+## Forecasting weekly sales
+
+index=main sourcetype=log4j requestType="checkout" | timechart sum(total) AS total span=1week
+
+index=main sourcetype=log4j requestType="checkout" | timechart sum(total) AS total span=1week | predict "total" as prediction algorithm=LLP holdback=0 future_timespan=10 period=7 upper95=upper95 lower95=lower95 | `forecastviz(10, 0, "total", 95)`
+
+forecastviz(4)
+
+eval _ft=$ft$, _hb=$hb$, _var=$v$, _ci=$ci$
+
+ft, hb, v, ci
+
+#################################################################################################
+##### Optimization
+#################################################################################################
+
+
+## Calculating an hourly count of sessions versus completed transactions
+
+sourcetype=log4j index=main | stats dc(sessionId) AS Sessions, count(eval(requestType="checkout")) AS Completed_Transactions
+
+index=summary source="cp09_sessions_transactions_summary" | table _time Sessions Completed_Transactions
+
+## Backfilling the number of purchases by city
+
+index=main sourcetype=log4j index=main requestType="checkout" | iplocation ipAddress | fillnull value="Unknown" City | replace "" with "Unknown" in City | stats count AS Purchases by City
+
+splunk cmd python fill_summary_index.py -app operational_intelligence -name cp09_backfill_purchases_city -et -30day@day -lt now -j 8 -auth admin:password
+
+index=summary source=cp09_backfill_purchases_city City!="Unknown" | timechart span=1d useother=F sum(Purchases) by City
+
+## Backfilling a summary index from within a search directly
+
+sourcetype=log4j index=main requestType="checkout" earliest=-2d@d latest=-1d@d | iplocation ipAddress | fillnull value="Unknown" City | replace "" with "Unknown" in City | stats count AS Purchases by City | addinfo | collect index=summary source="cp09_backfill_purchases_city" addtime=t
+
+## Displaying the maximum number of concurrent sessions over time
+
+index=main sourcetype=log4j | timechart span=1m dc(sessionId) AS concurrent_sessions | timechart span=30m max(concurrent_sessions) AS max_concurrent_sessions
+
+
+#################################################################################################
+##### Extending Splunk
+#################################################################################################
+
+# Customizing the application navigation
+
+<nav search_view="search" color="#999999">
+<view name="search" default='true' />
+<!--
+<view name="data_models" />
+<view name="reports" />
+<view name="alerts" />
+-->
+<collection label="Sales">
+<view name="product_monitoring" />
+<view name="purchase_volumes" />
+</collection>
+<collection label="Performance">
+<view name="operational_monitoring" />
+<view name="website_monitoring" />
+<view name="session_monitoring" />
+<view name="predictive_analytics" />
+</collection>
+<collection label="Operations">
+<view name="session_and_purchase_trends" />
+<view name="web_hits" />
+</collection>
+<collection label="Visitors">
+<view name="visitor_monitoring" />
+</collection>
+<collection label="Saved Reports">
+<collection label="Chapter 1 - Play Time">
+<saved source="unclassified" match="cp01" />
+</collection>
+<collection label="Chapter 2 - Diving into Data">
+<saved source="unclassified" match="cp02" />
+</collection>
+<collection label="Chapter 3 - Dashboards
+Visualizations">
+<saved source="unclassified" match="cp03" />
+</collection>
+<collection label="Chapter 4 - Building an App">
+<saved source="unclassified" match="cp04" />
+</collection>
+<collection label="Chapter 5 - Extending Intelligence">
+<saved source="unclassified" match="cp05" />
+</collection>
+<collection label="Chapter 6 - Advanced Searching">
+<saved source="unclassified" match="cp06" />
+</collection>
+<collection label="Chapter 7 - Enriching Data">
+<saved source="unclassified" match="cp07" />
+</collection>
+<collection label="Chapter 8 - Being Proactive">
+<saved source="unclassified" match="cp08" />
+</collection>
+<collection label="Chapter 9 - Speed Up Intelligence">
+<saved source="unclassified" match="cp09" />
+</collection>
+<collection label="Chapter 10 - Above and Beyond">
+<saved source="unclassified" match="cp10" />
+</collection>
+</collection>
+<collection label="Administration">
+<a href="http://docs.splunk.com">Splunk
+Documentation</a>
+<a href="http://apps.splunk.com">Splunk Apps</a>
+<a href="http://discoveredintelligence.ca/
+getting-started-with-splunk/">Splunk Help</a>
+<view name="dashboards" />
+</collection>
+</nav>
+
+*************************************************************************************************
+****** Reference Code
+*************************************************************************************************
+
+## Creating dashboards
+
+index=main sourcetype="access_combined"
+
+
+index=main sourcetype=access_combined | table _time, referer_domain, method, uri_path, status, JSESSIONID, useragent
+
+index=main sourcetype=access_combined | table * 
+
+index=main sourcetype=access_combined | fields - sourcetype, index, _raw, source date* linecount punct host time* eventtype | table *
+
+## Finding the most-access web pages
+
+index=main sourcetype=access_combined | stats count by uri_path | sort - count
+
+sourcetype=access_combined index=main | top uri_path 
+
+sourcetype=access_combined index=main | top limit=20 uri_path 
+
+sourcetype=access_combined index=main | stats dc(uri_path) by user | sort - user 
+
+index=main sourcetype=access_combined | eval browser=useragent | replace *Firefox* with Firefox, *Chrome* with Chrome, *MSIE* with "Internet Explorer", *Version*Safari* with Safari, *Opera* with Opera in browser | top limit=5 useother=t browser
+
+index=main sourcetype=access_combined | eval os=useragent | replace *Windows* with Windows, *Macintosh* with Apple, *Linux* with Linux in os | top limit=3 useother=t os
+
+index=main sourcetype=access_combined | stats dc(clientip) AS Referals by referer_domain | sort - Referals
+
+index=main sourcetype=access_combined | stats dc(clientip) AS Referals by referer_domain | sort - Referals | head 10
+
+index=main sourcetype=access_combined | stats dc(clientip) AS Referals by referer_domain | sort - Referals limit=10
+
+index=main sourcetype=access_combined | chart  count(eval(like(status,"2%"))) AS Success, 
+ count(eval(like(status,"4%") OR like(status,"5%"))) AS Error by uri_path
+ 
+index=main sourcetype=access_combined uri_path="/addItem" OR uri_path="/checkout" | chart count(eval(like(status,"2%"))) AS Success, count(eval(like(status,"4%") OR like(status,"5%"))) AS Error by uri_path | addcoltotals label=Total labelfield=uri_path
+ 
+sourcetype=access_combined | timechart span=6h avg(response) AS avg_response | eval avg_response=round(avg_response/1000,2)
+
+sourcetype=access_combined uri_path=* | timechart span=6h avg(response) by uri_path | foreach * [eval <<FIELD>>=round('<<FIELD>>'/1000,2)]
+
+index=main sourcetype=access_combined uri_path="/viewItem" OR uri_path="/addItem" status=200  | dedup JSESSIONID uri_path item | chart count(eval(uri_path="/viewItem")) AS view, count(eval(uri_path="/addItem")) AS add by item | sort - view | head 10
+
+index=main sourcetype=access_combined uri_path="/viewItem" OR uri_path="/addItem" status=200  | dedup JSESSIONID uri_path item | chart count(eval(uri_path="/viewItem")) AS view, count(eval(uri_path="/addItem")) AS add by item | sort - view | head 10 | eval  cart_conversion=round(add/view*100)."%"
+
+index=main sourcetype=log4j | transaction maxspan=4h threadId | timechart span=6h max(duration) AS max, mean(duration) AS mean, min(duration) AS min
+
+index=main sourcetype=log4j perfType="MEMORY" | eval mem_used_pc=round((mem_used/mem_total)*100) | eval mem_remain_pc=(100-mem_used_pc) | timechart span=15m avg(mem_remain_pc) avg(mem_used_pc)
+
+index=main sourcetype=log4j perfType="DB" | eval threshold=con_total/100*70 | where con_used>=threshold | timechart span=4h count(con_used) AS CountOverThreshold
+
+index=main sourcetype=access_combined | top uri_path 
+
+index=main sourcetype=access_combined | stats  dc(JSESSIONID)
+
+index=main sourcetype=access_combined status>=400 | 
+ stats count
+ 
+index=main sourcetype=access_combined | chart count by 
+ host,method
+ 
+index=main sourcetype=access_combined | eval 
+ GET_response=if(method=="GET",response,0) | eval 
+ POST_response=if(method=="POST",response,0) | timechart 
+ span=5m avg(GET_response) AS Avg_GET_Response, 
+ avg(POST_response) AS Avg_POST_Response, 
+ count(eval(method=="GET")) AS GET_Total, 
+ count(eval(method=="POST")) AS POST_Total, count AS 
+ Total_Visits
+ 
+ index=main sourcetype=access_combined | eval 
+ GET_response=if(method=="GET",response,0) | eval 
+ POST_response=if(method=="POST",response,0) | timechart span=5m 
+ avg(GET_response) AS Avg_GET_Response, avg(POST_response) AS 
+ Avg_POST_Response, count(eval(method=="GET")) AS GET_Total, 
+ count(eval(method=="POST")) AS POST_Total, count AS Total_Visits 
+ by host
+ 
+ index=main sourcetype=access_combined | eval kb=bytes/1024 
+ | table method kb response
+ 
+ index=main sourcetype=access_combined | eval kb=bytes/1024 |  timechart span=5m mean(kb) min(kb) max(kb)
+ 
+ index=main sourcetype=log4j | eval  mem_used_MB=(mem_used/1024)/1024 | eval  mem_total_MB=(mem_total/1024)/1024 | timechart span=1m  values(mem_total_MB) AS Total_Mem_Avail_MB, count AS  Total_Calls, avg(mem_used_MB) AS Avg_Mem_Used_MB,  avg(response_time) AS Avg_Response_Time
+ 
+ | mstats avg(_value) AS average WHERE index=hvac AND metric_name=* AND server="web*" by server, metric_name span=30m | eval id=metric_name.": ".server | eval average=round(average,2) | timechart avg(average) AS average by id useother=false limit=0 
+ 
+ index=main sourcetype=log4j | transaction sessionId  maxspan=30m | search requestType="checkout" | stats  avg(total) AS Avg_Spent by category
+
+

@@ -1,0 +1,97 @@
+<form>
+  <label>Visitor Monitoring</label>
+  <fieldset submitButton="false">
+    <input type="time" token="field1" searchWhenChanged="true">
+      <label></label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+    <input type="text" token="ip" searchWhenChanged="true">
+      <label>IP</label>
+      <default>*</default>
+      <suffix>*</suffix>
+    </input>
+    <input type="text" token="city" searchWhenChanged="true">
+      <label>City</label>
+      <default>*</default>
+      <suffix>*</suffix>
+    </input>
+    <input type="text" token="region" searchWhenChanged="true">
+      <label>Region</label>
+      <default>*</default>
+      <suffix>*</suffix>
+    </input>
+    <input type="text" token="country" searchWhenChanged="true">
+      <label>Country</label>
+      <default>*</default>
+      <suffix>*</suffix>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <table>
+        <title>Session Listing</title>
+        <search>
+          <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | stats count by JSESSIONID, clientip, City, Country, Region | fields clientip, City, Region, Country | search City="$city$" Region="$region$" Country="$country$"</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="drilldown">row</option>
+        <option name="refresh.display">progressbar</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <chart>
+        <title>Session Over Time</title>
+        <search>
+          <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with "Unknown" in City, Country, Region | search City="$city$" Region="$region$" Country="$country$" | timechart dc(JSESSIONID) | eventstats avg(dc(JSESSIONID)) as average | eval average=round(average,0)</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="charting.chart.overlayFields">average</option>
+        <option name="charting.axisTitleX.text">Time</option>
+        <option name="charting.axisTitleY.text">UniqueSessions</option>
+        <option name="charting.chart">line</option>
+        <option name="charting.drilldown">none</option>
+        <option name="charting.legend.placement">none</option>
+        <option name="refresh.display">progressbar</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <map>
+        <title>Sessions By Location</title>
+        <search>
+          <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" Country | search City="$city$" Region="$region$" Country="$country$" | stats count by Country | fields Country, count | geom geo_countries featureIdField=Country</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="mapping.type">choropleth</option>
+        <option name="refresh.display">progressbar</option>
+      </map>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <map>
+        <title>Count by location</title>
+        <search>
+          <query>index=main sourcetype=access_combined clientip="$ip$" | iplocation clientip | fillnull value="Unknown" City, Country, Region| replace "" with
+              	"Unknown" in City, Country, Region | search City="$city$" Region="$region$" Country="$country$" | geostats
+	               count</query>
+          <earliest>-24h@m</earliest>
+          <latest>now</latest>
+        </search>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.drilldown">all</option>
+        <option name="mapping.map.center">(0,0)</option>
+      </map>
+    </panel>
+  </row>
+</form>

@@ -1,0 +1,10 @@
+# Don't track big files or executables
+
+*.zip
+*.exe
+*.msi
+*.tgz
+
+# Skip the Installers directory
+
+/Installers

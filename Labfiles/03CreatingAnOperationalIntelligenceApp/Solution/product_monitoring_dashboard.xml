@@ -1,0 +1,31 @@
+<dashboard>
+  <label>Product Monitoring</label>
+  <row>
+    <panel>
+      <title>Average Spent by Category</title>
+      <chart>
+        <search ref="cp03_average_spent_category"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <chart>
+        <search ref="cp03_item_views_purchases"></search>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Average Checkout Product Price</title>
+      <table>
+        <search ref="cp04_average_checkout_product_price"></search>
+        <option name="drilldown">none</option>
+        <format type="color" field="avg_price">
+          <colorPalette type="list">[#53A051,#F8BE34,#DC4E41]</colorPalette>
+          <scale type="threshold">1000,2000</scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</dashboard>
