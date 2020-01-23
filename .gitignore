@@ -8,3 +8,7 @@
 # Skip the Installers directory
 
 /Installers
+
+# Skip PowerPoint temp files
+
+~$*.pptx
