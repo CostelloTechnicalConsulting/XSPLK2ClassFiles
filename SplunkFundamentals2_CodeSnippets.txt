@@ -1,4 +1,4 @@
-#################################################################################################**
+﻿#################################################################################################**
 ##### Getting Data In
 #################################################################################################**
 
@@ -432,5 +432,31 @@ index=main sourcetype=access_combined | eval
  | mstats avg(_value) AS average WHERE index=hvac AND metric_name=* AND server="web*" by server, metric_name span=30m | eval id=metric_name.": ".server | eval average=round(average,2) | timechart avg(average) AS average by id useother=false limit=0 
  
  index=main sourcetype=log4j | transaction sessionId  maxspan=30m | search requestType="checkout" | stats  avg(total) AS Avg_Spent by category
+
+
+*** Mod 4 Examples ***
+
+index=* sourcetype="access_combined" | rex field=_raw "(?<CustomIpAddress>\d+\.\d+\.\d+\.\d+?)" | search CustomIpAddress="119.*"
+
+
+
+index=main sourcetype=access_combined 
+| transaction JSESSIONID 
+| stats avg(duration) AS Avg_Session_Time
+
+
+index=main sourcetype=access_combined 
+| transaction JSESSIONID startswith="GET /home" endswith="checkout" maxpause=30s maxspan=30m maxevents=300 
+| stats avg(duration) AS Avg_Session_Time
+
+index=_internal sourcetype=splunkd_ui_access
+| eval spent_in_seconds = spent / 1000 
+| concurrency duration=spent_in_seconds 
+| search concurrency>=2
+
+
+index=main sourcetype=access_combined NOT status=200 
+| associate uri status supcnt=50 
+| table Description Reference_Key Reference_Value Target_Key Top_Conditional_Value
 
 
