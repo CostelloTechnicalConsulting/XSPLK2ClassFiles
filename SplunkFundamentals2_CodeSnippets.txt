@@ -342,6 +342,9 @@ getting-started-with-splunk/">Splunk Help</a>
 </nav>
 
 
+## Sankey Diagram
+
+index=main sourcetype="access_combined" | rex field=referer "https?://.*(?<referer_path>/.*)" | stats count, avg(bytes) by referer_path uri_path
 
 *************************************************************************************************
 ****** Reference Code
