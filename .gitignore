@@ -12,3 +12,6 @@
 # Skip PowerPoint temp files
 
 ~$*.pptx
+
+# Add the class app back in
+!/Apps/XSPLK2_App.zip
