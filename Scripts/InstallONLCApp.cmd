@@ -1,29 +1,5 @@
 @echo off
 
-SET APP_NAME=XSPLK2_App
-SET SPLUNK_HOME=C:\Splunk
-SET APP_PKG_DIR=C:\XSPLK2ClassFiles\Apps
-SET APP_LOCATION=%SPLUNK_HOME%\etc\apps\%APP_NAME%
+powershell -ExecutionPolicy Bypass -File C:\XSPLK2ClassFiles\Scripts\ExtractONLCApp.ps1
 
-cd %SPLUNK_HOME%\bin
-
-splunk install app %APP_PKG_DIR%\%APP_NAME%.spl -auth "admin:password"
-
-:: Patch to move from default to local
-:: Create directory structure
-mkdir %APP_LOCATION%\local
-mkdir %APP_LOCATION%\local\data
-mkdir %APP_LOCATION%\local\data\ui
-mkdir %APP_LOCATION%\local\data\ui\views
-
-:: Saved searches (reports)
-cd %APP_LOCATION%\local\
-move %APP_LOCATION%\default\savedsearches.conf
-
-:: Dashboards
-cd %APP_LOCATION%\local\data\ui\views\
-move %APP_LOCATION%\default\data\ui\views\*.xml 
-
-cd %SPLUNK_HOME%\bin
-
-splunk restart
+c:\splunk\bin\splunk restart
