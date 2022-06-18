@@ -232,6 +232,9 @@ index=main sourcetype="access_combined" | table _time response | streamstats win
 
 index=main sourcetype=log4j requestType="checkout" | timechart sum(total) AS total span=1week
 
+### --> NOTE: We have found that it's possible to achieve better results in our classroom environment
+index=main sourcetype=log4j requestType="checkout" | timechart sum(total) AS total span=1week
+
 index=main sourcetype=log4j requestType="checkout" | timechart sum(total) AS total span=1week | predict "total" as prediction algorithm=LLP holdback=0 future_timespan=10 period=7 upper95=upper95 lower95=lower95 | `forecastviz(10, 0, "total", 95)`
 
 forecastviz(4)
