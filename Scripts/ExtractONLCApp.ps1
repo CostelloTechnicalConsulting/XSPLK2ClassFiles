@@ -1,1 +1,1 @@
-Expand-Archive -Path C:\XSPLK2ClassFiles\Apps\XSPLK2_App.zip -DestinationPath C:\Splunk\etc\apps
+Expand-Archive -Path C:\XSPLK2ClassFiles\Apps\XSPLK2_App.zip -DestinationPath C:\Splunk\etc\apps -Force
